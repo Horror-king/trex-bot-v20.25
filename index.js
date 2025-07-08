@@ -2,9 +2,9 @@ const fs = require("fs-extra");
 const path = require('path');
 const { exec, spawn } = require("child_process");
 
-// Global login variables to make them accessible in error handlers
-let loginData = null;
-let fcaLoginOptions = null;
+// Global login variables
+let loginData = {};
+let fcaLoginOptions = {};
 
 const defaultConfigContent = {
   "version": "1.0.1",
@@ -110,7 +110,7 @@ const createFCAWrapper = () => {
   const maxReconnectAttempts = 5;
   const reconnectDelay = 30000; // 30 seconds
 
-  const reconnect = async (loginData, fcaOptions, callback) => {
+  const reconnect = async (callback) => {
     if (isReconnecting || reconnectAttempts >= maxReconnectAttempts) return;
     
     isReconnecting = true;
@@ -119,11 +119,11 @@ const createFCAWrapper = () => {
     
     try {
       await new Promise(resolve => setTimeout(resolve, reconnectDelay));
-      login(loginData, fcaOptions, (err, api) => {
+      login(loginData, fcaLoginOptions, (err, api) => {
         if (err) {
           logger.err(`Reconnect attempt ${reconnectAttempts} failed: ${err.message}`, "RECONNECT_FAIL");
           if (reconnectAttempts < maxReconnectAttempts) {
-            reconnect(loginData, fcaOptions, callback);
+            reconnect(callback);
           } else {
             logger.err("Max reconnect attempts reached. Please check your connection and restart the bot.", "RECONNECT_FAIL");
             isReconnecting = false;
@@ -146,7 +146,7 @@ const createFCAWrapper = () => {
   return {
     getApi: () => apiInstance,
     setApi: (api) => { apiInstance = api; },
-    reconnect: (loginData, fcaOptions, callback) => reconnect(loginData, fcaOptions, callback),
+    reconnect: (callback) => reconnect(callback),
     isReconnecting: () => isReconnecting
   };
 };
@@ -1143,7 +1143,7 @@ async function onBot() {
   });
 }
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const getCurrentTime = () => moment.tz("Asia/Dhaka").format("YYYY-MM-DD HH:mm:ss");
 
 function startWebServer() {
@@ -1173,7 +1173,7 @@ function startProcessMonitor() {
       logger.err("API connection lost in process monitor", "API_DISCONNECTED");
       if (!fcaWrapper.isReconnecting()) {
         logger.log("Attempting to reconnect API...", "RECONNECT_ATTEMPT");
-        fcaWrapper.reconnect(loginData, fcaLoginOptions, (err, api) => {
+        fcaWrapper.reconnect((err, api) => {
           if (err) {
             logger.err(`Reconnect failed: ${err.message}`, "RECONNECT_FAIL");
             return;
@@ -1193,7 +1193,7 @@ onBot();
 process.on('uncaughtException', (err) => {
   logger.err(`Uncaught Exception: ${err.stack || err.message}`, "CRITICAL");
   if (!fcaWrapper.isReconnecting()) {
-    fcaWrapper.reconnect(loginData, fcaLoginOptions, (err, api) => {
+    fcaWrapper.reconnect((err, api) => {
       if (err) {
         logger.err(`Reconnect after crash failed: ${err.message}`, "RECONNECT_FAIL");
         process.exit(1);
@@ -1207,7 +1207,7 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
   logger.err(`Unhandled Rejection at: ${promise}, reason: ${reason}`, "CRITICAL");
   if (!fcaWrapper.isReconnecting()) {
-    fcaWrapper.reconnect(loginData, fcaLoginOptions, (err, api) => {
+    fcaWrapper.reconnect((err, api) => {
       if (err) {
         logger.err(`Reconnect after rejection failed: ${err.message}`, "RECONNECT_FAIL");
         return;
