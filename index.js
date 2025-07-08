@@ -77,10 +77,12 @@ try {
     blue: (text) => `\x1b[34m${text}\x1b[0m`,
     yellow: (text) => `\x1b[33m${text}\x1b[0m`,
     blueBright: (text) => `\x1b[94m${text}\x1b[0m`,
-    hex: (color) => (text) => {
+    hex: (color) => {
       const hex = color.replace('#', '');
-      const r = parseInt(hex.substring(0, 2), g = parseInt(hex.substring(2, 4)), b = parseInt(hex.substring(4, 6));
-      return `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m`;
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return (text) => `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m`;
     }
   };
   console.warn("Using fallback chalk implementation. For full features, run: npm install chalk@4.1.2");
