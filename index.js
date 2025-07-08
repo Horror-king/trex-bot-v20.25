@@ -1,3 +1,30 @@
+const fs = require('fs');
+const path = require('path');
+
+// Try these locations for the config file
+const configPaths = [
+  path.join(__dirname, 'hassan-fca.json'),
+  path.join(process.cwd(), 'hassan-fca.json'),
+  require.resolve('josh-fca/josh-fca.json')
+];
+
+// Find the first existing config file
+const configPath = configPaths.find(fs.existsSync);
+
+if (configPath) {
+  // Set environment variable if hassan-fca.json exists
+  if (configPath.includes('hassan-fca.json')) {
+    process.env.JOSH_FCA_CONFIG = configPath;
+    console.log('ℹ️ Using hassan-fca.json configuration');
+  } else {
+    console.log('ℹ️ Using default josh-fca.json configuration');
+  }
+} else {
+  console.warn('⚠️ No configuration file found');
+}
+
+// Export the josh-fca function directly
+module.exports = require('josh-fca');
 const fs = require("fs-extra");
 const path = require('path');
 const { exec, spawn } = require("child_process");
@@ -953,6 +980,23 @@ async function onBot() {
 
   try {
     global.config = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
+    // Ensure FCAOption exists with default values
+    global.config.FCAOption = {
+      forceLogin: false,
+      listenEvents: true,
+      autoMarkDelivery: true,
+      autoMarkRead: true,
+      logLevel: 'silent',
+      selfListen: false,
+      online: true,
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+      autoReconnect: true,
+      autoRestore: true,
+      syncUp: true,
+      delay: 500,
+      ...(global.config.FCAOption || {}) // Merge with existing FCAOption if it exists
+    };
+    
     logger.loader("Loaded config.json.");
     global.adminMode.enabled = global.config.adminOnly || global.adminMode.enabled;
     global.adminMode.adminUserIDs = global.config.ADMINBOT || global.adminMode.adminUserIDs;
