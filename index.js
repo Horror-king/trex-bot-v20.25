@@ -2,6 +2,10 @@ const fs = require("fs-extra");
 const path = require('path');
 const { exec, spawn } = require("child_process");
 
+// Global login variables to make them accessible in error handlers
+let loginData = null;
+let fcaLoginOptions = null;
+
 const defaultConfigContent = {
   "version": "1.0.1",
   "language": "en",
@@ -933,7 +937,6 @@ global.getText = function (...args) {
 };
 
 async function onBot() {
-  let loginData;
   const configFilePath = resolve(join(global.client.mainPath, global.client.configPath));
   const appStateFile = resolve(join(global.client.mainPath, fbstateFile));
 
@@ -998,7 +1001,7 @@ async function onBot() {
     process.exit(1);
   }
 
-  const fcaLoginOptions = {
+  fcaLoginOptions = {
     ...global.config.FCAOption,
     forceLogin: global.config.FCAOption.forceLogin || false,
     listenEvents: global.config.FCAOption.listenEvents || true,
@@ -1170,7 +1173,6 @@ function startProcessMonitor() {
       logger.err("API connection lost in process monitor", "API_DISCONNECTED");
       if (!fcaWrapper.isReconnecting()) {
         logger.log("Attempting to reconnect API...", "RECONNECT_ATTEMPT");
-        // Implement your loginData and fcaOptions here or pass them to the wrapper
         fcaWrapper.reconnect(loginData, fcaLoginOptions, (err, api) => {
           if (err) {
             logger.err(`Reconnect failed: ${err.message}`, "RECONNECT_FAIL");
